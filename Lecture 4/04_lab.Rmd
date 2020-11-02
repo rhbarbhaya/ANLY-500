@@ -1,0 +1,158 @@
+---
+title: "Introduction to Data Analytics 2"
+author: "Rushabh Barbhaya"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Part 1: Experiment Design
+
+*Title*: Consumer Pseudo-Showrooming and Omni-Channel Product Placement Strategies
+
+*Abstract*: Recent advances in information technologies (IT) have powered the merger of online and offline retail channels into one single platform. Modern consumers frequently switch between online and offline channels when they navigate through various stages of the decision journey, motivating multichannel sellers to develop omni-channel strategies that optimize their overall profit. This study examines consumers' cross-channel search behavior of "pseudo-showrooming," or the consumer behavior of inspecting one product at a seller's physical store before buying a related but different product at the same seller’s online store, and investigates how such consumer behavior allows a multichannel seller to achieve better coordination between its online and offline arms through optimal product placement strategies.
+
+Participants in the study were grouped into the following categories: 
+
+  - Where_bought: Where they ended up purchasing an item: bought at the store, bought online. 
+  - Who_bought: If they bought from the same or a different retailer. 
+
+Each participant was then measured on:
+
+  - Money: how much money they spent in dollars on the product.
+  - Time: how much time (in minutes) they spent looking at the product online. 
+
+1)	What would be one possible null hypothesis based on this study?
+
+Solution: The type of retailer has no realtion to do with time consumer spends looking for the product.
+
+2)	What would be one possible alternative hypothesis based on this study?
+
+Solution: The time spent by the customer looking for the product online has a direct realtion with the decision to buy the product from the retailer (same or differnt)
+
+3)	Who are they sampling in this study?
+
+Solution: Consumers
+
+4)	Who is the intended population in this study?
+
+Solution: Consumers who make purchases either online or offline
+
+5)	Give an example of type 1 error based on this study (do not just define, explain in context how it might have happened here).
+
+Solution: A type 1 error is also known as a false positive and occurs when a researcher incorrectly rejects a true null hypothesis. This means that your report that your findings are significant when in fact they have occurred by chance. In this case, type 1 error would be, money spent by the consumer does not have a relation with the retailer (same or different), but it was rejected on incorrect analysis.
+
+6)	Give an example of type 2 error based on this study (do not just define, explain in context how it might have happened here).
+
+Solution: A type II error is also known as a false negative and occurs when a researcher fails to reject a null hypothesis which is really false. Here a researcher concludes there is not a significant effect, when actually there really is. In this case, the amount of time a consumer spent for a product online forms the basis of "where to buy" decision.
+
+# Part 2: Use the 04_data.csv to complete this portion.
+
+```{r import-data}
+df <- read.csv("D:/Personal Documents/Harrisburg Documents/ANLY 500/Lecture 4/04_data.csv")
+head(df)
+str(df)
+```
+
+1)	For each IV list the levels (next to a, b):
+
+    a.	Where bought: Factor w/ 2 levels "online","store" (Store vs Online)
+
+    b.	Who bought: Factor w/ 2 levels "different","same" (Different vs Same)
+    
+2)	What are the conditions in this experiment?
+
+    - In store and same retailer
+    - In store and different retailer
+    - Online and same retailer
+    - Online and different retailer
+
+3)	For each condition list the means, standard deviations, and standard error for the conditions for time and money spent. Please note that means you should have several sets of M, SD, and SE. Be sure you name the sets of means, sd, and se different things so you can use them later.
+
+```{r descriptives}
+std_error = function(x) sd(x)/sqrt(length(x))
+
+time_m = mean(df$time)
+time_m
+time_sd = sd(df$time)
+time_sd
+time_se = std_error(df$time)
+time_se
+
+money_m = mean(df$money)
+money_m
+money_sd = sd(df$money)
+money_sd
+money_se = std_error(df$money)
+money_se
+```
+
+4)	Which condition appears to have the best model fit using the mean as the model (i.e. smallest error) for time?
+
+Solution: In store from differnt retailer
+
+5)	What are the df for each condition?
+
+```{r df}
+online_same = data.frame(subset(df, df$where_bought == 'online' & df$who_bought == 'same'))
+df_online_same = nrow(online_same) - 1
+df_online_same
+
+online_different = data.frame(subset(df, df$where_bought == 'online' & df$who_bought == 'different'))
+df_online_different = nrow(online_different) - 1
+df_online_different
+
+
+store_same = data.frame(subset(df, df$where_bought == 'store' & df$who_bought == 'same'))
+df_store_same = nrow(store_same) - 1
+df_store_same
+
+
+store_different = data.frame(subset(df, df$where_bought == 'store' & df$who_bought == 'different'))
+df_store_different = nrow(store_different) - 1
+df_store_different
+```
+
+6)	What is the confidence interval (95%) for the means?
+
+```{r conf-interval}
+##money
+money_error = money_sd/sqrt(length(df$money))
+lower_limit_money = money_m - 1.96 * money_error
+upper_limit_money = money_m + 1.96 * money_error
+cat("95% confidence interval of Money =", lower_limit_money, "and", upper_limit_money)
+
+##time
+time_error = time_sd/sqrt(length(df$time))
+lower_limit_time = time_m - 1.96 * time_error
+upper_limit_time = time_m + 1.96 * time_error
+cat(sep = "\n")
+cat("95% confidence interval of Time =", lower_limit_time, "and", upper_limit_time)
+```
+
+7)	Use the MOTE library to calculate the effect size for the difference between money spent for the following comparisons (that means you'll have to do this twice):
+
+```{r MOTE}
+##Store versus online when bought at the same retailer
+library(MOTE)
+
+##Store versus online when bought at a different retailer
+
+```
+
+8)	What can you determine about the effect size in the experiment - is it small, medium or large?
+
+Solution:
+40 observations is quite less. There isn't much difference for this sample size. I would infer medium difference.
+
+9)	How many people did we need in the study for each comparison?
+
+```{r pwr}
+##Store versus online when bought at the same retailer
+
+##Store versus online when bought at a different retailer
+
+```
