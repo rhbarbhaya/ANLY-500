@@ -1,0 +1,204 @@
+---
+title: "Introduction to Data Analytics 1"
+author: "Rushabh Barbhaya"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Part 1: Variables, Hypothesis, Designs
+
+*Title:* Offshore outsourcing: Its advantages, disadvantages, and effect on the American economy
+
+*Abstract*: The United States has trained some of the world's best computer programmers and technology experts. Despite all of this training, many businesses do not have a full understanding of information technology. As the importance of technology in the business world grows, many companies are wasting money on extensive technology projects. When problems arise, they expect that further investment will solve these issues. To prevent such problems, many companies have begun to outsource these functions in an effort to reduce costs and improve performance. The majority of these outsourced information technology and call center jobs are going to low-wage countries, such as India and China where English-speaking college graduates are being hired at substantially lower wages. The purpose of this study is to evaluate the positive and negative aspects of offshore outsourcing with a focus on the outsourcing markets in India and China, arguably the two most popular destinations for outsourcers. The cost savings associated with offshore outsourcing will be evaluated in relation to the security risks and other weakness of offshore outsourcing. In addition, an analysis of the number of jobs sent overseas versus the number of jobs created in the United States will be used to assess the effects that outsourcing is having on the American economy and job market. Finally, the value of jobs lost from the American economy will be compared to the value of jobs created. The goal of these analyses is to create a clear picture of this increasingly popular business strategy.
+
+Answer the following questions about the abstract above:
+
+1)	What is a potential hypothesis of the researchers?
+
+Answer: Jobs lost in America has less effect on American economy as compared to jobs created.
+
+2)	What is one of the independent variables?
+
+Answer: Number of jobs
+
+    a.	What type of variable is the independent variable?
+    
+    Answer: Numerical
+
+3)	What is one of the dependent variables?
+
+Answer: Change in economy
+
+    a.	What type of variable is the dependent variable?
+    
+    Answer: Numerical
+    
+4)	What might cause some measurement error in this experiment?
+
+Answer: Recoring error, incomplete data.
+
+5)	What type of research design is the experiment?
+
+Answer: Coorelational analysis
+
+    a.	Why?
+    
+    Answer: We are measuring the impact of output variable, depending on change in other variable(s)
+
+6)	How might you measure the reliability of your dependent variable?
+
+Answer: Sensitivity analysis, comparison to real world data, Monte Carlo simulation or re-examine the values.
+
+7)	Is this study ecologically valid?
+
+Answer: Yes
+
+8)	Can this study claim cause and effect?
+
+Answer: Yes
+
+    a.	Why/why not?
+    
+    Answer: We are measuring the cost saved, which is the effect; to number of jobs outsourced, which is the cause
+
+9)	What type of data collection did the researchers use (please note that #5 is a different question)?
+
+Answer: Real-world observations
+
+# Part 2: Use the assessment scores dataset (03_lab.csv) to answer these questions.
+
+The provided dataset includes the following information created to match the abstract:
+
+- Jobs: the percent of outsourced jobs for a call center.
+- Cost: one calculation of the cost savings for the business.
+- Cost2: a separate way to calculate cost savings for the business.
+- ID: an ID number for each business.
+- Where: where the jobs were outsourced to. 
+
+Calculate the following information:
+
+1)	Create a frequency table of the percent of outsourced jobs.
+
+```{r}
+Jobs = read.csv("03_data.csv", header = TRUE)
+Outsourced_Jobs = table(Jobs$jobs)
+# hist(Outsourced_Jobs)
+hist(Jobs$jobs, xlab = "Percent of Jobs Outsourced", main = "Outsourced Jobs")
+```
+
+2)	Create histograms of the two types of cost savings. You will want to add the breaks argument to the hist() function. This argument adds more bars to the histogram, which makes it easier to answer the following questions:
+
+`hist(dataset$column, breaks = 15)` 
+
+15 is a great number to pick, but it can be any number. For this assignment, try 15 to see a medium number of bars. 
+
+```{r}
+hist1 = hist(Jobs$cost, breaks = 15)
+#hist1 = hist(Jobs$cost, breaks = 15, xlim = c(600,800))
+hist2 = hist(Jobs$cost2, breaks = 15)
+# hist2 = hist(Jobs$cost2, breaks = 15, xlim = c(400,600))
+```
+
+3)	Examine these histograms to answer the following questions:
+
+    a.	Which cost savings appears the most normal?
+    
+    Answer: "Cost2" column looks to be more normally distributed as compared to "Cost"
+    
+    b.	Which cost savings data is multimodal?
+    
+    Answer: "Cost" seems multimodal
+    
+    c.	Which cost savings data looks the most skewed (and in which direction positive or negative)?  
+    
+    Answer: None are heavily skewed but on a closer level, "Cost" is left-skewed (negative)
+    
+    d.	Which cost savings data looks the most kurtotic?
+    
+    Answer: "Cost2"
+    
+4)	Calculate the z-scores for each cost savings, so they are all on the same scale.
+
+```{r}
+cost_mean = mean(Jobs$cost)
+cost_std = sd(Jobs$cost)
+cost2_mean = mean(Jobs$cost2)
+cost2_std = sd(Jobs$cost2)
+#Jobs$cost_m = (Jobs$cost - cost_mean) / cost_std
+Jobs$cost_z = scale(Jobs$cost)
+#a = Jobs$cost_m - Jobs$cost_z
+#a
+Jobs$cost2_z = scale(Jobs$cost2)
+```
+
+6)	How many of the cost saving scores were more extreme than 95% of the data (i.e., number of z-scores at a *p* < .05)?
+
+```{r}
+n_Obs = dim(Jobs)[1]
+Z_value = 1.96
+cost_ul = cost_mean+(Z_value * (cost_std / sqrt(n_Obs)))
+cost_ll = cost_mean-(Z_value * (cost_std / sqrt(n_Obs)))
+cost2_ul = cost2_mean+(Z_value * (cost2_std / sqrt(n_Obs)))
+cost2_ll = cost2_mean-(Z_value * (cost2_std / sqrt(n_Obs)))
+
+cost_oob = sum(abs(Jobs$cost_z)>Z_value)
+cost2_oob = sum(abs(Jobs$cost2_z)>Z_value)
+
+high_cost = max(Jobs$cost)
+high_cost_z = max(Jobs$cost_z)
+high_cost2 = max(Jobs$cost2)
+high_cost2_z = max(Jobs$cost2_z)
+low_cost = min(Jobs$cost)
+low_cost_z = min(Jobs$cost_z)
+low_cost2 = min(Jobs$cost2)
+low_cost2_z = min(Jobs$cost2_z)
+
+Jobs$id[Jobs$cost_z == high_cost_z]
+Jobs$id[Jobs$cost2_z == high_cost2_z]
+Jobs$id[Jobs$cost_z == low_cost_z]
+Jobs$id[Jobs$cost2_z == low_cost2_z]
+```
+
+    a.	Cost Savings 1:
+    
+    Answer: 10
+    
+    c.	Cost Savings 2:
+    
+    Answer: 13
+    
+7)	Which business had:
+
+    a.	the highest cost savings?
+    
+    Answer: Highest Cost = 708.99
+            
+            Highest Cost in Z_score = 2.57
+            
+            Highest Cost2 = 566.31
+            
+            Highest Cost2 in Z_Score = 3.08
+    
+    b.	the the lowest cost savings?
+    
+    Answer: Lowest Cost = 647.05
+            
+            Lowest Cost in Z-Score = -2.64
+            
+            Lowest Cost2 = 493.51
+            
+            Lowest Cost in Z-Score = -2.93
+    
+    c.  Use both cost savings columns and find the ID number of the business with the lowest and highest z-score.
+    
+    Answer: ID of highest Cost  = S100
+            
+            ID of highest Cost2 = S097
+            
+            ID of lowest cost   = S190
+            
+            ID of lowest cost2  = S092
