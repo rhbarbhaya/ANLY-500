@@ -1,0 +1,244 @@
+---
+title: "Correlation"
+author: "Rushabh Barbhaya"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+*Title*: Big Data Analytics Services for Enhancing Business Intelligence
+
+*Abstract*: This article examines how to use big data analytics services to enhance business intelligence (BI). More specifically, this article proposes an ontology of big data analytics and presents a big data analytics service-oriented architecture (BASOA), and then applies BASOA to BI, where our surveyed data analysis shows that the proposed BASOA is viable for enhancing BI and enterprise information systems. This article also explores temporality, expectability, and relativity as the characteristics of intelligence in BI. These characteristics are what customers and decision makers expect from BI in terms of systems, products, and services of organizations. The proposed approach in this article might facilitate the research and development of business analytics, big data analytics, and BI as well as big data science and big data computing.
+
+# Dataset:
+
+    -	Gender of the participant surveyed on these topics
+    -	Temporality: an average score of the rated ability to adapt to change over time 1 (not changing) to 7 (changing a lot)
+    -	Expectability: a rated degree of satisfaction with the BI
+    -	Relativity: average score rating of how much better one system is than another in BI 1 (not very good) to 7 (very good)
+    -	Positive emotion: how positive participants felt about BI (higher scores are more positive, ranges from 1 to 7).
+
+```{r starting}
+df <- read.csv("07_data.csv")
+head(df)
+str(df)
+dim(df)
+summary(df)
+```
+
+# Data Screening:
+
+## Accuracy: 
+
+    a.	Include output that indicates if the data are or are not accurate.
+    b.	If the data are not accurate, delete the inaccurate scores.
+    c.	Include a summary that shows that you fixed the inaccurate scores.
+    
+```{r accuracy}
+df$relativity[ df$relativity<1] = NA
+df$relativity[ df$relativity>7] = NA
+df$positive[ df$positive<1] = NA
+df$positive[ df$positive>7] = NA
+summary(df)
+```
+    
+## Missing:
+
+    a.  Since any accuracy errors will create more than 5% missing data, exclude all data pairwise for the rest of the analyses. 
+    
+```{r missing}
+noMiss = df
+summary(noMiss)
+```
+    
+## Outliers:
+
+    a.	Include a summary of your mahal scores.
+    b.	What are the df for your Mahalanobis cutoff? --> 4
+    c.	What is the cut off score for your Mahalanobis measure? --> 18.47
+    d.	How many outliers did you have? --> NONE
+    
+```{r outliers}
+mahal = mahalanobis(noMiss[ , -1], colMeans(noMiss[ , -1], na.rm = TRUE), cov(noMiss[ , -1],
+        use = "pairwise.complete.obs"))
+cutoff = qchisq(1-.001, ncol(noMiss[, -1]))
+cutoff
+
+ncol(noMiss[, -1])
+summary(mahal < cutoff)
+```
+    
+# Assumptions:
+
+## Linearity: 
+
+    a.	Include a picture that shows how you might assess multivariate linearity.
+    b.	Do you think you've met the assumption for linearity?
+
+```{r linearity}
+df2 = noMiss
+random = rchisq(nrow(df2), 7)
+fake = lm(random ~ ., data = df2)
+standardized = rstudent(fake)
+fitted = scale(fake$fitted.values)
+
+{qqnorm(standardized)
+  abline(0,1)}
+```
+Most of the data is on the line. Therefore, yes, they line up.
+
+## Normality: 
+
+    a.	Include a picture that shows how you might assess multivariate normality.
+    b.	Do you think you've met the assumption for normality? 
+
+```{r normality}
+hist(standardized, breaks = 15)
+```
+Yes, the curve looks normal
+
+## Homogeneity and Homoscedasticity: 
+
+    a.	Include a picture that shows how you might assess multivariate homogeneity.
+    b.	Do you think you've met the assumption for homogeneity?
+    c.	Do you think you've met the assumption for homoscedasticity?
+    
+```{r homogs}
+{plot(fitted, standardized)
+  abline(0,0)
+  abline(v = 0)}
+```
+
+The data is evenly spread and there seems to be no pattern to it. \
+    
+# Hypothesis Testing / Graphs:
+
+Create a scatter plot of temporality and relativity.
+
+    a.	Be sure to check x/y axis labels and length.
+    b.	What type of relationship do these two variables appear to have?
+    
+```{r plot1, warning=FALSE}
+library(ggplot2)
+cleanup = theme(panel.grid.major = element_blank(),                 
+                panel.grid.minor = element_blank(),                 
+                panel.background = element_blank(),                 
+                axis.line.x = element_line(color = "black"),                
+                axis.line.y = element_line(color = "black"),                
+                legend.key = element_rect(fill = "white"),                
+                text = element_text(size = 15))
+
+scatter = ggplot(df2, aes(temporality, relativity))
+scatter +  cleanup +  geom_point() +  xlab("Temporality Rating") +
+   ylab("Relativity Rating") +  coord_cartesian(ylim = c(0.5,7.5), xlim = c(0.5, 7.5))
+```
+
+Slightly positive. \
+    
+Create a scatter plot of expectability and positive emotion.
+
+    a.	Include a linear line on the graph. 
+    b.	Be sure to check x/y axis labels and length.
+    c.	What type of relationship do these two variables appear to have?
+
+```{r plot2, warning=FALSE}
+scatter = ggplot(df2, aes(expectability, positive))
+scatter +  cleanup +  geom_point() +  geom_smooth(method = "lm") +  
+  xlab("Expectability Rating") +  
+  ylab("Positive Emotion Rating") +  
+  coord_cartesian(ylim = c(0.5,7.5))
+```
+
+
+Create a scatter plot of expectability and relativity, grouping by gender.
+
+    a.	Include a linear line on the graph. 
+    b.	Be sure to check x/y axis labels and length.
+    c.	What type of relationship do these two variables appear to have for each group?
+    
+```{r plot3, warning=FALSE}
+scatter = ggplot(df2, aes(expectability, relativity, color = gender, fill =gender))
+scatter +  cleanup +  geom_point() +  geom_smooth(method = "lm") +  
+  xlab("Expectability Rating") +  
+  ylab("Relativity Rating") +  
+  coord_cartesian(ylim = c(0.5,7.5)) +   
+  scale_fill_discrete(name = "Gender", labels = c("Men", "Women")) +  
+  scale_color_discrete(name = "Gender", labels = c("Men", "Women"))
+```
+
+Slight positive for Men. Women no change.    
+\
+Include a correlation table of all of the variables (cor).
+
+    a.	Include the output for Pearson.
+    b.	Include the output for Spearman.
+    c.	Include the output for Kendall.
+    d.	Which correlation was the strongest? --> Gender and Temporality
+    e.  For the correlations with gender, would point biserial or biserial be more appropriate?  Why? --> Point Biserial because they are in different groups
+    
+```{r correl1}
+df2$gender2 = as.numeric(df2$gender)
+cor(df2 [ , -1], method = "pearson", use = "pairwise.complete.obs")
+cor(df2 [ , -1], method = "spearman", use = "pairwise.complete.obs")
+cor(df2 [ , -1], method = "kendall", use = "pairwise.complete.obs")
+```
+
+Calculate confidence interval for temporality and relativity.
+
+```{r cicorrel1}
+with(df2, cor.test(relativity, temporality, method = "pearson"))
+```
+
+Calculate the difference in correlations for 1) temporality and expectbility and 2) temporality and positive emotion.
+
+    a.	Include the output from the test through Pearson's test.
+    b.	Is there a significant difference in their correlations? --> Yes
+
+```{r correl2}
+library(cocor)
+cocor(~expectability + temporality | temporality + positive, data = df2)
+```
+
+Calculate the difference in correlations for gender on temporality and relativity.
+
+    a.	Include the output from the test.
+    b.	Is there a significant difference in their correlations? --> Yes
+    
+```{r correl3}
+men = subset(df2, gender == "men")
+women = subset(df2, gender == "women")
+data = list(men, women)
+cocor(~temporality + relativity | temporality + relativity, data = data)
+```
+
+Calculate the partial and semipartial correlations for all variables, and include the output. 
+    a.	Are any of the correlations significant after controlling for all other relationships?
+    
+```{r partials, warning=FALSE}
+df3 = na.omit(df2)
+library(ppcor)
+
+pcor(df3[ , -1], method = "pearson")
+spcor(df3[ , -1], method = "pearson")
+```
+
+# Theory:
+
+    - What are we using as our model for understanding the data in a correlational analysis?
+    - How might we determine model fit?
+    Technically, r contains both the model and the error, so you can look at the size of r as an indicator of model fit OR use the confidence interval (small).
+    
+    - What is the difference between correlation and covariance?
+    Correlation = standardized (z scored) covariance.
+    
+    - What is the difference between R and r?
+    R = multiple x to one y r = one x to one y
+    
+    - When would I want to use a nonparametric correlation over Pearson's correlation?
+    The data is curvilinear The data is ordinal instead of continuous.
+    
+    - What is the distinction between semi-partial and partial correlations? 
+    Partial correlations control for the relationship between z and x and z and y to tell you about x and y (takes out the variance of z from both variables). Semi partials correlations control forthe relationship between x and z to tell you about x and y (takes out the variance due to z onlyon x).
