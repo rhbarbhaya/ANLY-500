@@ -1,0 +1,160 @@
+---
+title: "Data Screening"
+author: "Rushabh Barbhaya"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Dataset:
+
+600 employees participated in a company-wide experiment to test if an educational program would be effective at increasing employee satisfaction. Half of the employees were assigned to be in the control group, while the other half were assigned to be in the experimental group. The experimental group was the only group that received the educational intervention. All groups were given an employee satisfaction scale at time one to measure their initial levels of satisfaction. The same scale was then used half way through the program and at the end of the program. The goal of the experiment was to assess satisfaction to see if it increased across the measurements during the program as compared to a control group. 
+
+## Variables: 
+
+    a) Gender (1 = male, 2 = female)
+    b) Group (1 = control group, 2 = experimental group)
+    c) 3 satisfaction scores, ranging from 2-100 points. Decimals are possible! The control group was measured at the same three time points, but did not take part in the educational program. 
+        i) Before the program
+        ii)	Half way through the program 
+        iii) After the program 
+
+```{r starting}
+df <- read.csv("06_data.csv")
+head(df)
+```
+
+# Data screening:
+
+## Accuracy:
+
+    a)	Include output and indicate how the data are not accurate.
+    b)	Include output to show how you fixed the accuracy errors, and describe what you did.
+    
+```{r accuracy}
+summary(df)
+df$Gender = factor(df$Gender, levels = c(1,2), labels = c('male', 'female'))
+table(df$Gender)
+df$Group = factor(df$Group, levels = c(1,2), labels = c("control group", "experimental group"))
+table(df$Group)
+
+# Begin and After have scores greater than 100, which are scored out of 100. That doesn't make sense
+df[,3:5][df[3:5]>100] = NA
+summary(df)
+```
+
+## Missing data:
+
+    a)	Include output that shows you have missing data.
+    b)	Include output and a description that shows what you did with the missing data.
+        i)	Replace all participant data if they have less than or equal to 20% of missing data by row. 
+        ii)	You can leave out the other participants (i.e. you do not have to create allrows). 
+        
+```{r missing}
+apply(df, 2, function(x) sum(is.na(x)))
+
+percentmiss = function(x) (sum(is.na(x))/length(x)*100)
+
+missing = apply(df, 1, percentmiss)
+table(missing)
+
+replace = subset(df, missing <= 20)
+permissable_missing = apply(replace, 1, percentmiss)
+table(permissable_missing)
+
+nope = subset(df, missing > 20)
+dont = apply(nope, 1, percentmiss)
+table(dont)
+
+apply(df, 2, percentmiss)
+
+replace_col = replace[,-c(1,2)]
+dont_col = replace[,c(1,2)]
+
+library(mice)
+not_missing_data = mice(replace_col)
+not_missing = complete(not_missing_data, 1)
+summary(not_missing)
+
+C_data = cbind(dont_col, not_missing)
+summary(C_data)
+
+R_data = rbind(nope, C_data)
+summary(R_data)
+```
+
+## Outliers:
+
+    a)	Include a summary of your mahal scores that are greater than the cutoff.
+    b)	What are the df for your Mahalanobis cutoff?
+    c)	What is the cut off score for your Mahalanobis measure?
+    d)	How many outliers did you have?
+    e)	Delete all outliers. 
+    
+```{r outliers}
+str(not_missing)
+not_missing[,-c(1,2)]
+maha = mahalanobis(not_missing, colMeans(not_missing, na.rm = TRUE), cov(not_missing, use = 'pairwise.complete.obs'))
+# maha
+cutoff = qchisq(1-.001, ncol(not_missing))
+# print(cutoff)
+
+summary(maha<cutoff)
+
+no_outliers = subset(not_missing, maha < cutoff)
+str(no_outliers)
+```
+
+# Assumptions:
+
+## Additivity: 
+
+    a)  Include the symnum bivariate correlation table of your continuous measures.
+    b)  Do you meet the assumption for additivity?
+    
+```{r additivity}
+library(corrplot)
+cor(no_outliers)
+corrplot(cor(no_outliers))
+```
+
+## Linearity: 
+
+    a)  Include a picture that shows how you might assess multivariate linearity.
+    b)  Do you think you've met the assumption for linearity?
+    
+```{r linearity}
+random = rchisq(nrow(no_outliers), 7)
+df2 = lm(random~., data = no_outliers)
+summary(df2)
+```
+
+## Normality: 
+
+    a)  Include a picture that shows how you might assess multivariate normality.
+    b)  Do you think you've met the assumption for normality? 
+
+```{r normality}
+standard = rstudent(df2)
+qqnorm(standard)
+abline(0,1)
+
+library(moments)
+skewness(no_outliers, na.rm = TRUE)
+kurtosis(no_outliers, na.rm = TRUE)
+hist(standard, breaks = 20)
+```
+
+## Homogeneity/Homoscedasticity: 
+
+    a)  Include a picture that shows how you might assess multivariate homogeneity.
+    b)  Do you think you've met the assumption for homogeneity?
+    c)  Do you think you've met the assumption for homoscedasticity?
+
+```{r homog-s}
+plot(scale(df2$fitted.values), standard)
+abline(0,0); abline(v=0)
+```
